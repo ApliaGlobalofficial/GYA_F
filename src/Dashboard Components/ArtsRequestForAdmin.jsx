@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ChevronDown, Search } from "lucide-react";
 import defaultArt from "../assets/1.jpg"; // ✅ Import your default art image
+import { fi } from "date-fns/locale/fi";
 
 const ArtsRequestForAdmin = () => {
   const [activeTab, setActiveTab] = useState("uploaded");
@@ -93,6 +94,7 @@ const ArtsRequestForAdmin = () => {
                 "Discounted Price",
                 "Status",
                 "Actions",
+                "edited",
               ].map((col) => (
                 <th key={col} className="border border-[#7a7a7a7a] px-4 py-3">
                   {col}
@@ -173,7 +175,7 @@ const ArtsRequestForAdmin = () => {
                         >
                           Approve
                         </button>
-                        
+
                         <button
                           onClick={() => {
                             handleStatus(2, item.id);
@@ -184,6 +186,17 @@ const ArtsRequestForAdmin = () => {
                         </button>
                       </div>
                     )}
+                  </td>
+                  <td className="px-4 py-3 border border-[#e3c27e] text-red-700 font-semibold">
+                    {JSON.parse(item?.edited_fields)?.map((field) => {
+                      return (
+                        <>
+                          <div className="lowercase first-letter:uppercase border-b-2 border-red-800">
+                            {field}
+                          </div>
+                        </>
+                      );
+                    }) }
                   </td>
                 </tr>
               ))

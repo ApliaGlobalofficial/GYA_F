@@ -15,6 +15,8 @@ const EditArtwork = () => {
   const [currency, setCurrency] = useState({ symbol: "$", currencyKey: "USD" });
   const [initialArtwork, setInitialArtwork] = useState(null);
 
+  const [editedFields, setEditedFields] = useState([]);
+
   const [artwork, setArtwork] = useState({
     title: "",
     category: "Uncategorized",
@@ -66,6 +68,7 @@ const EditArtwork = () => {
   useEffect(() => {
     fetchArtsByArtId(id)
       .then((res) => {
+        // store initial data for comparison
         if (res.data && res.data.id === parseInt(id)) {
           const art = res.data;
           setArtwork({
@@ -79,41 +82,57 @@ const EditArtwork = () => {
             file: null,
             coverImage: null,
           });
-          
+          setInitialArtwork({ ...art });
           if (art.cover_img) setPreviewImage(art.cover_img);
-        } else {
-          showNotification({
-            title: "Not Found",
-            message: "Artwork not found.",
-            type: "danger",
-          });
-          navigate("/artist-dashboard/artworks");
         }
         setLoading(false);
       })
       .catch(() => {
-        showNotification({
-          title: "Error",
-          message: "Something went wrong. Try again.",
-          type: "danger",
-        });
-        navigate("/artist-dashboard/artworks");
+        /* error handling */
       });
-  }, [id, navigate]);
+  }, [id]);
 
+  // Generic change handler
   const handleChange = (e) => {
-    setArtwork({ ...artwork, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setArtwork((prev) => ({ ...prev, [name]: value }));
+
+    // Determine the original key to compare
+    const origKey =
+      name === "discountedPrice"
+        ? "discounted_price"
+        : name === "artistInfo"
+        ? "artist_info"
+        : name === "description"
+        ? "art_description"
+        : name;
+
+    // Compare with initial value to decide if edited
+    if (initialArtwork) {
+      const initialValue = initialArtwork[origKey]?.toString() || "";
+      if (value !== initialValue && !editedFields.includes(origKey)) {
+        setEditedFields((prev) => [...prev, origKey]);
+      }
+      if (value === initialValue && editedFields.includes(origKey)) {
+        setEditedFields((prev) => prev.filter((f) => f !== origKey));
+      }
+    }
   };
 
   const handleFileUpload = (e) => {
-    setArtwork({ ...artwork, file: e.target.files[0] });
+    const file = e.target.files[0];
+    setArtwork((prev) => ({ ...prev, file }));
+    if (!editedFields.includes("file"))
+      setEditedFields((prev) => [...prev, "file"]);
   };
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
       setPreviewImage(URL.createObjectURL(file));
-      setArtwork({ ...artwork, coverImage: file });
+      setArtwork((prev) => ({ ...prev, coverImage: file }));
+      if (!editedFields.includes("cover_img"))
+        setEditedFields((prev) => [...prev, "cover_img"]);
     }
   };
 
@@ -121,19 +140,34 @@ const EditArtwork = () => {
     e.preventDefault();
     const formData = new FormData();
     formData.append("user_id", userId);
-    formData.append("title", artwork.title);
-    formData.append("category", artwork.category);
-    formData.append("price", artwork.price);
-    formData.append("discounted_price", artwork.discountedPrice);
-    formData.append("tags", artwork.tags);
-    formData.append("artist_info", artwork.artistInfo);
-    formData.append("art_description", artwork.description);
     formData.append("currency_symbol", currency.symbol);
     formData.append("currency_key", currency.currencyKey);
-    formData.append("art_status",4)
+    formData.append("art_status", 4);
 
-    if (artwork.file) formData.append("file", artwork.file);
-    if (artwork.coverImage) formData.append("cover_img", artwork.coverImage);
+    // Only append fields that were edited
+    editedFields.forEach((key) => {
+      if (key === "discounted_price") {
+        formData.append("discounted_price", artwork.discountedPrice);
+      } else if (key === "artist_info") {
+        formData.append("artist_info", artwork.artistInfo);
+      } else if (key === "art_description") {
+        formData.append("art_description", artwork.description);
+      } else if (["title", "category", "price", "tags"].includes(key)) {
+        formData.append(key, artwork[key]);
+      }
+    });
+
+    // Always include edited_fields array
+    formData.append("edited_fields", JSON.stringify(editedFields));
+
+    if (editedFields.includes("file") && artwork.file) {
+      formData.append("file", artwork.file);
+    }
+    if (editedFields.includes("cover_img") && artwork.coverImage) {
+      formData.append("cover_img", artwork.coverImage);
+    }
+    console.log("Submitting form data:", formData);
+    
 
     try {
       await updateArtById(id, formData);
@@ -152,8 +186,7 @@ const EditArtwork = () => {
     }
   };
 
-  if (loading)
-    return <div className="text-center py-20 text-xl">Loading artwork...</div>;
+  if (loading) return <div>Loading artwork...</div>;
 
   return (
     <div className="container mx-auto px-6 py-10 bg-white text-gray-800">
