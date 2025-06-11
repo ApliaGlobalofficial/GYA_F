@@ -188,15 +188,34 @@ const ArtsRequestForAdmin = () => {
                     )}
                   </td>
                   <td className="px-4 py-3 border border-[#e3c27e] text-red-700 font-semibold">
-                    {JSON.parse(item?.edited_fields)?.map((field) => {
-                      return (
-                        <>
-                          <div className="lowercase first-letter:uppercase border-b-2 border-red-800">
-                            {field}
-                          </div>
-                        </>
-                      );
-                    }) }
+                    {(() => {
+                      // make sure we have something to parse
+                      const raw = item.edited_fields;
+                      let fields = [];
+
+                      if (raw) {
+                        try {
+                          const parsed =
+                            typeof raw === "string" ? JSON.parse(raw) : raw;
+                          if (Array.isArray(parsed)) {
+                            fields = parsed;
+                          }
+                        } catch (e) {
+                          console.warn("Could not parse edited_fields:", e);
+                        }
+                      }
+
+                      return fields.length > 0
+                        ? fields.map((field, i) => (
+                            <div
+                              key={i}
+                              className="lowercase first-letter:uppercase border-b-2 border-red-800"
+                            >
+                              {field}
+                            </div>
+                          ))
+                        : null;
+                    })()}
                   </td>
                 </tr>
               ))
