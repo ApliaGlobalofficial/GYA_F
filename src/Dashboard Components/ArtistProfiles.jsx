@@ -24,6 +24,7 @@ import {
 import { createPayloadSchema } from "../utilities/Utility"; // Import the utility function for payload creation
 import ReviewModal from "../Dashboard Components/ReviewModal";
 import { showNotification } from "../utilities/Utility"; // for success toast
+import { X } from "lucide-react";
 
 export default function ArtistProfiles() {
   const navigate = useNavigate();
@@ -37,7 +38,18 @@ export default function ArtistProfiles() {
   const [finalArtistData, setFinalArtistData] = useState([]);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [averageRating, setAverageRating] = useState(0);
+  const [selectedArt, setSelectedArt] = useState(null);
+  const [isModalOpen, setModalOpen] = useState(false);
 
+  function handleOpenModal(artItem) {
+    setSelectedArt(artItem);
+    setModalOpen(true);
+  }
+
+  function handleCloseModal() {
+    setSelectedArt(null);
+    setModalOpen(false);
+  }
   // const handleProductClick = (product) => {
   //   console.log("Product clicked:", product); // Log the clicked product
   //   navigate(`/artwork-profile/${product.id}`, { state: { artwork: product, artistData: artistData } });
@@ -295,12 +307,20 @@ export default function ArtistProfiles() {
                                   Sold Out
                                 </button>
                               ) : (
-                                <button
-                                  onClick={() => slotBooking(product)}
-                                  className="mt-3 bg-black text-white px-4 py-1 rounded-full text-sm"
-                                >
-                                  Book a Slot
-                                </button>
+                                <div className="flex flex-col items-center">
+                                  <button
+                                    onClick={() => slotBooking(product)}
+                                    className="mt-3 bg-black text-white px-4 py-1 rounded-full text-sm"
+                                  >
+                                    Book a Slot
+                                  </button>
+                                  <button
+                                    onClick={() => handleOpenModal(product)}
+                                    className="mt-3  text-black px-4 py-1 rounded-full border border-black  text-sm"
+                                  >
+                                    View
+                                  </button>
+                                </div>
                               )
                             ) : (
                               <>
@@ -537,7 +557,93 @@ export default function ArtistProfiles() {
             }}
           />
         </div>
+        {/* Pass selected data into Modal */}
+        <Modal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          data={selectedArt || {}}
+        />
       </div>
     </>
+  );
+}
+
+function Modal({ isOpen, onClose, data }) {
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 transition-opacity duration-200"
+    >
+      <div
+        className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden transform transition-transform duration-200 scale-100"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b">
+          <h2 className="text-xl font-semibold">Art Details</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-800 focus:outline-none"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-4 overflow-y-auto flex-1 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-gray-600 font-medium">Title</p>
+              <p className="mt-1 text-gray-800">{data.title}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 font-medium">Category</p>
+              <p className="mt-1 text-gray-800">{data.category}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 font-medium">Price</p>
+              <p className="mt-1 text-gray-800">
+                {data.currency_symbol}{data.price}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 font-medium">Tags</p>
+              <p className="mt-1 text-gray-800 flex flex-wrap gap-2">
+                {data?.tags}
+              </p>
+            </div>
+          </div>
+
+          {/* Description */}
+          <div>
+            <p className="text-sm text-gray-600 font-medium">Description</p>
+            <p className="mt-1 text-gray-800 whitespace-pre-line">
+              {data.art_description}
+            </p>
+          </div>
+
+          {/* Image */}
+          {data.cover_img && (
+            <div>
+              <img
+                src={data.cover_img}
+                alt={data.title}
+                className="w-full max-h-64 object-cover rounded-lg"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-700 focus:outline-none transition-colors duration-150"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
