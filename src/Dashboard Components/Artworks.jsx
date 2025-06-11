@@ -80,14 +80,14 @@ const Artworks = () => {
     )
     .filter((art) => {
       if (activeFilter === "All") return true;
-      return art.art_status === 0
+      return art.art_status === 0 | art.art_status === 4
         ? "Pending" === activeFilter
         : art.art_status === 1 && "Live" === activeFilter;
     });
 
   const filterCounts = {
     All: artworks.length,
-    Pending: artworks.filter((art) => art.art_status === 0).length,
+    Pending: artworks.filter((art) => art.art_status == 0 | art.art_status ==4).length,
     "Live": artworks.filter((art) => art.art_status === 1).length,
   };
 

@@ -8,33 +8,6 @@ const ArtsRequestForAdmin = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [pendingArts, setPendingArts] = useState([]);
 
-  const uploadedArts = [
-    {
-      id: 1,
-      title: "Sunset Overdrive",
-      category: "Landscape",
-      artist: "John Doe",
-      country: "India",
-      price: 1500,
-      discountedPrice: 1200,
-      status: 0,
-      image: "https://i.imgur.com/POtXyie.jpg",
-    },
-  ];
-
-  const editedArts = [
-    {
-      id: 2,
-      title: "Midnight Blossom",
-      category: "Abstract",
-      artist: "Jane Smith",
-      country: "USA",
-      price: 1800,
-      discountedPrice: 1500,
-      status: 2,
-      image: "", // Missing to trigger fallback
-    },
-  ];
 
  async function getPendingArts() {
     try {
@@ -63,6 +36,9 @@ const ArtsRequestForAdmin = () => {
   const toggleDropdown = (id) => {
     setOpenDropdownId(openDropdownId === id ? null : id);
   };
+
+  const uploadedArts = pendingArts.filter((art) => art.art_status == 0);
+  const editedArts = pendingArts.filter((art) => art.art_status == 4);
 
   const filteredData = (
     activeTab === "uploaded" ? uploadedArts : editedArts
@@ -222,8 +198,8 @@ const ArtsRequestForAdmin = () => {
       </div>
 
       {/* Table */}
-      {/* {renderTable(filteredData)} */}
-      {renderTable(pendingArts)}
+      {renderTable(filteredData)}
+      {/* {renderTable(pendingArts)} */}
     </div>
   );
 };
