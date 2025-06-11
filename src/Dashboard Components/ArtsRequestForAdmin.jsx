@@ -8,30 +8,59 @@ const ArtsRequestForAdmin = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [pendingArts, setPendingArts] = useState([]);
 
-
- async function getPendingArts() {
+  async function getPendingArts() {
     try {
-      const data = await fetch(`${import.meta.env.VITE_SERVER_API_URL}art/pending-arts`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+      const data = await fetch(
+        `${import.meta.env.VITE_SERVER_API_URL}art/pending-arts`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
 
       const result = await data.json();
       if (data.ok) {
-      setPendingArts(result?.data || []);
+        setPendingArts(result?.data || []);
       }
     } catch (error) {
       console.error("Error fetching pending arts:", error);
       // Handle error appropriately, e.g., show a notification or alert
-      
     }
   }
 
+  const handleStatus = async (status, id) => { 
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SERVER_API_URL}art/${id}/approve-by-admin`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({ status }),
+        }
+      );
+
+      if (response.ok) {
+        getPendingArts(); // Refresh the list after updating status
+      } else {
+        const errorData = await response.json();
+        console.log("Error updating status:", errorData);
+        // Handle error appropriately, e.g., show a notification or alert
+      }
+    } catch (error) {
+      console.log("Error updating status:", error);
+      // Handle error appropriately, e.g., show a notification or alert
+    }
+
+
+  }
   useEffect(() => {
     getPendingArts();
-  },[])
+  }, []);
 
   const toggleDropdown = (id) => {
     setOpenDropdownId(openDropdownId === id ? null : id);
@@ -127,20 +156,31 @@ const ArtsRequestForAdmin = () => {
                       ? "Rejected by Admin"
                       : "Pending"}
                   </td>
-                  <td className="px-4 py-3 border border-[#e3c27e] relative z-20">
+                  <td className="px-4 py-3 border border-[#e3c27e] relative overflow-visible">
                     <button
                       onClick={() => toggleDropdown(item.id)}
-                      className="bg-[#ff7043] text-white px-3 py-1 rounded flex items-center gap-1"
+                      className="bg-[#ff7043] text-white px-3 py-1 rounded flex items-center gap-1 z-10"
                     >
                       Actions <ChevronDown size={14} />
                     </button>
                     {openDropdownId === item.id && (
-                      <div className="absolute z-50 right-0 mt-2 w-36 bg-white border border-gray-300 rounded shadow-md text-sm">
-                        <button className="block w-full px-4 py-2 bg-green-600 text-white hover:bg-green-700 text-left">
-                          ✅ Approve
+                      <div className="absolute right-0 mt-2 w-36 bg-white border border-gray-300 rounded shadow-md text-sm z-50">
+                        <button
+                          onClick={() => {
+                            handleStatus(1, item.id);
+                          }}
+                          className="block w-full px-4 py-2 bg-green-600 text-white hover:bg-green-700 text-left"
+                        >
+                          Approve
                         </button>
-                        <button className="block w-full px-4 py-2 bg-red-500 text-white hover:bg-red-600 text-left">
-                          ❌ Reject
+                        
+                        <button
+                          onClick={() => {
+                            handleStatus(2, item.id);
+                          }}
+                          className="block w-full px-4 py-2 bg-red-500 text-white hover:bg-red-600 text-left"
+                        >
+                          Reject
                         </button>
                       </div>
                     )}
