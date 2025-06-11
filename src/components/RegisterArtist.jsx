@@ -38,6 +38,7 @@ const RegisterArtist = () => {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [consent, setConsent] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -69,6 +70,7 @@ const RegisterArtist = () => {
 
     if (!consent)
       errors.consent = "You must agree to the terms and conditions.";
+    if (!mounted) errors.mounted = "You must agree.";
 
     setErrors(errors);
     return Object.keys(errors).length === 0;
@@ -89,12 +91,15 @@ const RegisterArtist = () => {
     setIsLoading(true);
     try {
       const response = await axios.post(`${API_BASE_URL}`, formData);
+      if (response.status === 201) {
+        console.log("Registration successful:", response.data);
 
-      showNotification({
-        title: "Registration Successful",
-        message: "Welcome Artist! Redirecting to Sign In...",
-        type: "success",
-      });
+        showNotification({
+          title: "Registration Successful",
+          message: "Welcome Artist! Redirecting to Sign In...",
+          type: "success",
+        });
+      }
 
       setTimeout(() => navigate("/user-signin"), 2000);
     } catch (error) {
@@ -246,6 +251,21 @@ const RegisterArtist = () => {
         </div>
         {errors.consent && (
           <p className="text-red-500 text-sm">{errors.consent}</p>
+        )}
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            id="mounted"
+            checked={mounted}
+            onChange={(e) => setMounted(e.target.checked)}
+            className="w-5 h-5 text-[#e3c27e] border-gray-300 rounded focus:ring-[#e3c27e]"
+          />
+          <label htmlFor="mounted" className="ml-2 text-black">
+            Mounted
+          </label>
+        </div>
+        {errors.mounted && (
+          <p className="text-red-500 text-sm">{errors.mounted}</p>
         )}
 
         <button
