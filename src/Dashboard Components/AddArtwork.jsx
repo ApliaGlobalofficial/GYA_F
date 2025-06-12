@@ -5,10 +5,12 @@ import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import { showNotification } from "../utilities/Utility";
 import { MdDelete } from "react-icons/md";
+import { de } from "date-fns/locale/de";
 
 const AddArtwork = () => {
   const navigate = useNavigate();
   const [userId, setUserId] = useState(null);
+  const [userData, setUserData] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
   const [currency, setCurrency] = useState({ symbol: "$", currencyKey: "USD" });
   const [artwork, setArtwork] = useState({
@@ -22,11 +24,35 @@ const AddArtwork = () => {
     file: null,
   });
 
+  const token = localStorage.getItem("token");
+
+  const getArtistInfo = async (userId) => {
+    try {
+      const data = await axios.get(
+        `${import.meta.env.VITE_SERVER_API_URL}artist/${userId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      console.log("Artist Info:", data.data);
+      setUserData(data.data);
+    } catch (err) {
+      console.error("Error fetching artist info:", err);
+      showNotification({
+        title: "Error",
+        message: "Failed to fetch artist information.",
+        type: "danger",
+      });
+    }
+  };
+
   useEffect(() => {
-    const token = localStorage.getItem("token");
     if (token) {
       try {
         const decoded = jwtDecode(token);
+        console.log("Decoded Token:", decoded);
+        getArtistInfo(decoded.user_id);
+
         if (decoded.user_id) setUserId(decoded.user_id);
         else throw new Error();
       } catch {
@@ -252,9 +278,10 @@ const AddArtwork = () => {
             </label>
             <textarea
               name="artistInfo"
-              value={artwork.artistInfo}
+              value={userData?.about_artist || artwork.artistInfo || ""}
               onChange={handleChange}
-              className="w-full border px-4 py-2 rounded-md h-32"
+              className="w-full border px-4 py-2 rounded-md h-32 cursor-not-allowed"
+              disabled
             />
           </div>
           <div>

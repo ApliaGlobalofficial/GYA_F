@@ -80,15 +80,18 @@ const Artworks = () => {
     )
     .filter((art) => {
       if (activeFilter === "All") return true;
-      return art.art_status === 0 | art.art_status === 4
+      return (art.art_status === 0) | (art.art_status === 4) | (art.art_status === 2)
         ? "Pending" === activeFilter
         : art.art_status === 1 && "Live" === activeFilter;
     });
 
   const filterCounts = {
     All: artworks.length,
-    Pending: artworks.filter((art) => art.art_status == 0 | art.art_status ==4).length,
-    "Live": artworks.filter((art) => art.art_status === 1).length,
+    Pending: artworks.filter(
+      (art) =>
+        (art.art_status == 0) | (art.art_status == 4) | (art.art_status == 2)
+    ).length,
+    Live: artworks.filter((art) => art.art_status === 1).length,
   };
 
   const handleSelectAll = (e) => {
@@ -256,6 +259,7 @@ const Artworks = () => {
                     "Short Descriptions",
                     "Uploaded On",
                     "Actions",
+                    "Reason",
                   ].map((head) => (
                     <th
                       key={head}
@@ -337,8 +341,39 @@ const Artworks = () => {
                             onClick={() => handleEditArtwork(art)}
                             className="text-blue-500"
                           >
-                            <Pencil size={20} />
+                            <Pencil size={20} /> <span>Edit</span>
                           </button>
+                        </div>
+                      </td>
+                      <td className="border border-[#e3c27e] px-4 py-3">
+                        <div className="flex items-center space-x-2 justify-center">
+                          {art.art_status == 0 && (
+                            <span className="text-yellow-500 font-semibold">
+                              Pending review
+                            </span>
+                          )}
+                          {art.art_status == 1 && (
+                            <span className="text-green-500 font-semibold">
+                              Live
+                            </span>
+                          )}
+                          {art.art_status == 2 &&
+                            art?.rejected_reason &&
+                            art?.rejected_reason && (
+                              <span className="text-red-500 font-semibold">
+                                rejected by admin - {art?.rejected_reason}
+                              </span>
+                            )}{" "}
+                          {art.art_status == 3 && (
+                            <span className="text-red-500 font-semibold">
+                              Out Of Stock
+                            </span>
+                          )}
+                          {art.art_status == 4 && (
+                            <span className="text-yellow-600 font-semibold">
+                              Under Review
+                            </span>
+                          )}
                         </div>
                       </td>
                     </tr>
