@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Upload, ArrowLeft, Edit2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import { showNotification } from "../utilities/Utility";
@@ -9,7 +9,7 @@ import { MdDelete } from "react-icons/md";
 const AddArtwork = () => {
   const navigate = useNavigate();
   const [userId, setUserId] = useState(null);
-  const [coverPreview, setCoverPreview] = useState(null);
+  const [filePreview, setFilePreview] = useState(null);
   const [currency, setCurrency] = useState({ symbol: "$", currencyKey: "USD" });
   const [artwork, setArtwork] = useState({
     title: "",
@@ -20,26 +20,16 @@ const AddArtwork = () => {
     artistInfo: "",
     description: "",
     file: null,
-    coverImage: null,
   });
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
       try {
-        const decodedToken = jwtDecode(token);
-        if (decodedToken.user_id) {
-          setUserId(decodedToken.user_id);
-        } else {
-          showNotification({
-            title: "Invalid Token",
-            message: "User ID not found. Please login again.",
-            type: "danger",
-          });
-          navigate("/login");
-        }
-      } catch (error) {
-        console.error("Invalid token:", error);
+        const decoded = jwtDecode(token);
+        if (decoded.user_id) setUserId(decoded.user_id);
+        else throw new Error();
+      } catch {
         showNotification({
           title: "Session Expired",
           message: "Please log in again.",
@@ -47,13 +37,9 @@ const AddArtwork = () => {
         });
         navigate("/login");
       }
-
-      if (!localStorage.getItem("currency")) {
+      if (!localStorage.getItem("currency"))
         window.dispatchEvent(new Event("triggerCountryDropdown"));
-      }
-
-      const currenc = JSON.parse(localStorage.getItem("currency"));
-      setCurrency(currenc);
+      setCurrency(JSON.parse(localStorage.getItem("currency")));
     } else {
       showNotification({
         title: "Not Logged In",
@@ -64,53 +50,40 @@ const AddArtwork = () => {
     }
   }, [navigate]);
 
-  const handleChange = (e) => {
+  const handleChange = (e) =>
     setArtwork({ ...artwork, [e.target.name]: e.target.value });
-  };
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
-    setArtwork({ ...artwork, file });
-  };
-
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
     if (file) {
-      setCoverPreview(URL.createObjectURL(file));
-      setArtwork({ ...artwork, coverImage: file });
+      setFilePreview(URL.createObjectURL(file));
+      setArtwork((prev) => ({ ...prev, file }));
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!userId) {
-      showNotification({
+    if (!userId)
+      return showNotification({
         title: "Missing User ID",
         message: "Please log in again.",
         type: "danger",
       });
-      return;
-    }
-
-    if (!artwork.file || !artwork.coverImage) {
-      showNotification({
-        title: "Missing Files",
-        message: "Both artwork file and cover image are required!",
+    if (!artwork.file)
+      return showNotification({
+        title: "Missing File",
+        message: "Please upload an artwork file.",
         type: "warning",
       });
-      return;
-    }
-
     if (
       artwork.discountedPrice &&
       parseFloat(artwork.discountedPrice) > parseFloat(artwork.price)
     ) {
-      showNotification({
+      return showNotification({
         title: "Invalid Price",
-        message: "Discounted price cannot be greater than actual price.",
+        message: "Discounted price cannot exceed actual price.",
         type: "warning",
       });
-      return;
     }
 
     const formData = new FormData();
@@ -123,28 +96,20 @@ const AddArtwork = () => {
     formData.append("artist_info", artwork.artistInfo);
     formData.append("art_description", artwork.description);
     formData.append("file", artwork.file);
-    formData.append("cover_img", artwork.coverImage);
-    formData.append("currency_symbol", currency?.symbol);
-    formData.append("currency_key", currency?.currencyKey);
+    formData.append("currency_symbol", currency.symbol);
+    formData.append("currency_key", currency.currencyKey);
 
     try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_SERVER_API_URL}art`,
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
-      );
-
-      console.log("Upload Success:", response.data);
+      await axios.post(`${import.meta.env.VITE_SERVER_API_URL}art`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       showNotification({
         title: "Success",
         message: "Artwork uploaded successfully!",
         type: "success",
       });
       navigate("/artist-dashboard/artworks");
-    } catch (error) {
-      console.error("Upload Error:", error.response?.data || error.message);
+    } catch {
       showNotification({
         title: "Upload Failed",
         message: "Something went wrong. Please try again.",
@@ -159,205 +124,161 @@ const AddArtwork = () => {
         onClick={() => navigate(-1)}
         className="flex items-center text-[#2c3e50] hover:text-[#b8860b] mb-4"
       >
-        <ArrowLeft className="mr-2" />
-        Back
+        <ArrowLeft className="mr-2" /> Back
       </button>
-
       <h1 className="text-4xl font-[Cinzel] font-bold mb-8">ADD NEW PRODUCT</h1>
-
-      <form
-        onSubmit={handleSubmit}
-        className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start"
-      >
-        {/* Left Column */}
-        <div className="space-y-4">
-          <div>
-            <label className="block font-semibold text-[#2c3e50]">Title</label>
-            <input
-              type="text"
-              name="title"
-              placeholder="Product name.."
-              value={artwork.title}
-              onChange={handleChange}
-              className="w-full border border-gray-300 px-4 py-2 rounded-md"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block font-semibold text-[#2c3e50]">
-              Category
-            </label>
-            <select
-              name="category"
-              value={artwork.category}
-              onChange={handleChange}
-              className="w-full border border-gray-300 px-4 py-2 rounded-md"
-            >
-              <option value="Uncategorized">Uncategorized</option>
-              <option value="Acrylic on canvas">Acrylic on canvas</option>
-              <option value="Acrylic on paper">Acrylic on paper</option>
-              <option value="Oil on canvas">Oil on canvas</option>
-              <option value="Water Colour">Water Colour</option>
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Info Fields */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-4">
             <div>
               <label className="block font-semibold text-[#2c3e50]">
-                Price{" "}
-                {/* <span className="text-sm text-gray-500">(You Earn: £0.00)</span> */}
-              </label>
-              <div className="flex items-center border border-gray-300 rounded-md">
-                <span className="px-3">{currency?.symbol}</span>
-                <input
-                  type="number"
-                  name="price"
-                  value={artwork.price}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border-l border-gray-300 focus:outline-none"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block font-semibold text-[#2c3e50]">
-                Discounted Price
-              </label>
-              <div className="flex items-center border border-gray-300 rounded-md">
-                <span className="px-3">{currency?.symbol}</span>
-                <input
-                  type="number"
-                  name="discountedPrice"
-                  value={artwork.discountedPrice}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border-l border-gray-300 focus:outline-none"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="block font-semibold text-[#2c3e50]">Short Description</label>
-            <input
-              type="text"
-              name="tags"
-              placeholder="Select product tags"
-              value={artwork.tags}
-              onChange={handleChange}
-              className="w-full border border-gray-300 px-4 py-2 rounded-md"
-            />
-          </div>
-        </div>
-
-        {/* Right Column - Cover Image Upload with Preview */}
-        <div className="flex flex-col justify-start items-center border-2 border-dashed border-gray-300 rounded-md p-4 h-full w-full min-h-[200px]">
-          {coverPreview ? (
-            <div className="relative w-full h-[300px] flex items-center justify-center">
-              <img
-                src={coverPreview}
-                alt="Preview"
-                className="max-w-full max-h-full object-contain rounded-md"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  setCoverPreview(null);
-                  setArtwork((prev) => ({ ...prev, coverImage: null }));
-                }}
-                className="absolute top-2 right-2 text-black hover:text-red-800 rounded-full p-1"
-                title="Remove image"
-              >
-                <MdDelete size={20} />
-              </button>
-            </div>
-          ) : (
-            <>
-              <label className="block font-semibold text-[#2c3e50] mb-2 text-center">
-                Upload a product cover image
+                Title
               </label>
               <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="cursor-pointer"
+                type="text"
+                name="title"
+                value={artwork.title}
+                onChange={handleChange}
+                className="w-full border px-4 py-2 rounded-md"
                 required
               />
-            </>
-          )}
+            </div>
+            <div>
+              <label className="block font-semibold text-[#2c3e50]">
+                Category
+              </label>
+              <select
+                name="category"
+                value={artwork.category}
+                onChange={handleChange}
+                className="w-full border px-4 py-2 rounded-md"
+              >
+                <option>Uncategorized</option>
+                <option>Acrylic on canvas</option>
+                <option>Acrylic on paper</option>
+                <option>Oil on canvas</option>
+                <option>Water Colour</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block font-semibold text-[#2c3e50]">
+                  Price
+                </label>
+                <div className="flex items-center border rounded-md">
+                  <span className="px-3">{currency.symbol}</span>
+                  <input
+                    type="number"
+                    name="price"
+                    value={artwork.price}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border-l focus:outline-none"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block font-semibold text-[#2c3e50]">
+                  Discounted Price
+                </label>
+                <div className="flex items-center border rounded-md">
+                  <span className="px-3">{currency.symbol}</span>
+                  <input
+                    type="number"
+                    name="discountedPrice"
+                    value={artwork.discountedPrice}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border-l focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+            <div>
+              <label className="block font-semibold text-[#2c3e50]">
+                Short Description
+              </label>
+              <input
+                type="text"
+                name="tags"
+                value={artwork.tags}
+                onChange={handleChange}
+                className="w-full border px-4 py-2 rounded-md"
+              />
+            </div>
+          </div>
+          {/* Single File Upload */}
+          <div className="flex flex-col items-center border-2 border-dashed rounded-md p-4 w-full min-h-[200px]">
+            {filePreview ? (
+              <div className="relative w-full h-[300px] flex items-center justify-center">
+                <img
+                  src={filePreview}
+                  alt="Preview"
+                  className="max-w-full max-h-full object-contain rounded-md"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilePreview(null);
+                    setArtwork((p) => ({ ...p, file: null }));
+                  }}
+                  className="absolute top-2 right-2 p-1 rounded-full hover:text-red-800"
+                  title="Remove image"
+                >
+                  <MdDelete size={20} />
+                </button>
+              </div>
+            ) : (
+              <>
+                <label className="block font-semibold text-[#2c3e50] mb-2 text-center">
+                  Upload Artwork File
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="cursor-pointer"
+                  required
+                />
+              </>
+            )}
+          </div>
+        </div>
+        {/* Artist Info & Description */}
+        <div className="space-y-6">
+          <div>
+            <label className="block font-semibold text-[#2c3e50] mb-2">
+              Artist Info
+            </label>
+            <textarea
+              name="artistInfo"
+              value={artwork.artistInfo}
+              onChange={handleChange}
+              className="w-full border px-4 py-2 rounded-md h-32"
+            />
+          </div>
+          <div>
+            <label className="block font-semibold text-[#2c3e50] mb-2">
+              Art Description
+            </label>
+            <textarea
+              name="description"
+              value={artwork.description}
+              onChange={handleChange}
+              className="w-full border px-4 py-2 rounded-md h-32"
+            />
+          </div>
+        </div>
+        {/* Save Button */}
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            className="px-8 py-3 bg-[#ffe974] font-bold text-black text-lg shadow-lg hover:scale-105 transition rounded-md"
+          >
+            SAVE PRODUCT
+          </button>
         </div>
       </form>
-
-      {/* Artwork File Upload */}
-      <div className="mt-8">
-        <label className="block font-semibold text-[#2c3e50] mb-2">
-          Upload Artwork File
-        </label>
-        <div className="inline-flex items-center border border-gray-300 rounded-md px-2 py-1">
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleFileUpload}
-            className="text-sm"
-            style={{ width: "180px" }}
-            required={!artwork.file}
-          />
-          {artwork.file && (
-            <button
-              type="button"
-              onClick={() => setArtwork((prev) => ({ ...prev, file: null }))}
-              className="text-black hover:text-red-800 ml-2"
-              title="Remove file"
-            >
-              <MdDelete size={16} />
-            </button>
-          )}
-        </div>
-
-        {artwork.file && (
-          <p className="text-sm text-gray-500 mt-1">
-            Selected: {artwork.file.name}
-          </p>
-        )}
-      </div>
-
-      {/* Artist Info */}
-      <div className="mt-8">
-        <label className="block font-semibold text-[#2c3e50] mb-2">
-          Artist Info
-        </label>
-        <textarea
-          name="artistInfo"
-          value={artwork.artistInfo}
-          onChange={handleChange}
-          className="w-full border border-gray-300 px-4 py-2 rounded-md h-32"
-        ></textarea>
-      </div>
-
-      {/* Description */}
-      <div className="mt-6">
-        <label className="block font-semibold text-[#2c3e50] mb-2">
-          Art Description
-        </label>
-        <textarea
-          name="description"
-          value={artwork.description}
-          onChange={handleChange}
-          className="w-full border border-gray-300 px-4 py-2 rounded-md h-32"
-        ></textarea>
-      </div>
-
-      {/* Save Button */}
-      <div className="mt-6 flex justify-end">
-        <button
-          type="submit"
-          onClick={handleSubmit}
-          className="px-8 py-3 bg-[#ffe974] font-bold text-black text-lg  transition shadow-lg transform hover:scale-105 rounded-md"
-        >
-          SAVE PRODUCT
-        </button>
-      </div>
     </div>
   );
 };
