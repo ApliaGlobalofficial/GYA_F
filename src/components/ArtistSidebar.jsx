@@ -90,7 +90,7 @@ const ArtistSidebar = () => {
 
         {/* Compact Icon Row Below Menu */}
         <div className="mt-4 px-6 pt-4 border-t border-[#f1c152] flex justify-around">
-          <Link
+          {/* <Link
             to="/artist-dashboard/artist-banner"
             className={`hover:text-[#FFBB33] ${
               location.pathname === "/artist-dashboard/artist-banner"
@@ -99,20 +99,20 @@ const ArtistSidebar = () => {
             }`}
           >
             <User size={22} />
-          </Link>
+          </Link> */}
 
-          <Link
+          {/* <Link
             to="/artist-dashboard/settings"
             className="text-black hover:text-[#FFBB33]"
           >
             <Settings size={22} />
-          </Link>
+          </Link> */}
 
           <button
             onClick={handleLogout}
-            className="text-black hover:text-[#FFBB33]"
+            className="text-black hover:text-[#FFBB33] flex gap-3 justify-center items-center"
           >
-            <FaPowerOff size={20} />
+            <FaPowerOff size={20} /> <span>Logout</span>
           </button>
         </div>
       </nav>
