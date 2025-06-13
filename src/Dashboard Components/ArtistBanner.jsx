@@ -1,4 +1,4 @@
-import React, { useState, Fragment } from "react";
+import React, { useState, Fragment, useEffect } from "react";
 import {
   FaMapMarkerAlt,
   FaPhone,
@@ -6,20 +6,27 @@ import {
   FaLinkedin,
   FaInstagram,
   FaPinterest,
-  FaStar
+  FaStar,
 } from "react-icons/fa";
 import { IoMdChatbubbles } from "react-icons/io";
 import { FiShare2 } from "react-icons/fi";
 import { Dialog } from "@headlessui/react";
 import { updateArtistProfile } from "../services/ApiService";
-import { mapUpdatedProfileDataToDto } from "../utilities/Utility";
+import {
+  mapUpdatedProfileDataToDto,
+  showNotification,
+} from "../utilities/Utility";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { jwtDecode } from "jwt-decode";
 
 const ArtistBanner = () => {
   const [formData, setFormData] = useState({
     phone: "",
     linkedin: "",
     instagram: "",
-    pinterest: ""
+    pinterest: "",
+    artistInfo: "",
   });
 
   const [backgroundImg, setBackgroundImg] = useState(null);
@@ -27,6 +34,62 @@ const ArtistBanner = () => {
   const [showBanner, setShowBanner] = useState(false);
   const [bgImgfile, setBgImgFile] = useState(null);
   const [profileImgfile, setProfileImgFile] = useState(null);
+  const [userData, setUserData] = useState(null);
+
+  const navigate = useNavigate();
+
+  const token = localStorage.getItem("token");
+
+  const getArtistInfo = async (userId) => {
+    try {
+      const data = await axios.get(
+        `${import.meta.env.VITE_SERVER_API_URL}artist/${userId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      console.log("Artist Info:", data.data);
+
+      setFormData({
+        phone: data?.data?.user?.phone,
+        linkedin: data?.data?.linkedin,
+        instagram: data?.data?.instagram,
+        pinterest: data?.data?.pinterest,
+        artistInfo: data?.data?.about_artist,
+      });
+      setUserData(data.data);
+    } catch (err) {
+      console.error("Error fetching artist info:", err);
+      showNotification({
+        title: "Error",
+        message: "Failed to fetch artist information.",
+        type: "danger",
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (token) {
+      try {
+        const decoded = jwtDecode(token);
+        console.log("Decoded Token:", decoded);
+        getArtistInfo(decoded.user_id);
+      } catch {
+        showNotification({
+          title: "Session Expired",
+          message: "Please log in again.",
+          type: "danger",
+        });
+        navigate("/login");
+      }
+    } else {
+      showNotification({
+        title: "Not Logged In",
+        message: "Please log in first.",
+        type: "warning",
+      });
+    }
+  }, []);
 
   const handleImageUpload = (e, setter, fileSetter) => {
     const file = e.target.files[0];
@@ -40,7 +103,7 @@ const ArtistBanner = () => {
   const handleChange = (e) => {
     setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     }));
   };
 
@@ -53,42 +116,48 @@ const ArtistBanner = () => {
     setShowBanner(false);
   };
   const updateProfileSubmit = () => {
-
-   
     const loggedInUser = localStorage.getItem("user");
     if (!loggedInUser) {
       navigate("/login");
     }
 
     const user = JSON.parse(loggedInUser);
-    let payload = mapUpdatedProfileDataToDto(formData,bgImgfile,profileImgfile,user.id);  
-    console.log("payload",payload)
-    updateArtistProfile(payload).then((res)=>{
-      alert("Profile updated successfully", res);
-      setFormData({
-        phone: "",
-        linkedin: "",
-        instagram: "",
-        pinterest: ""
+    let payload = mapUpdatedProfileDataToDto(
+      formData,
+      bgImgfile,
+      profileImgfile,
+      user.id
+    );
+    console.log("payload", payload);
+    updateArtistProfile(payload)
+      .then((res) => {
+        alert("Profile updated successfully", res);
+        setFormData({
+          phone: "",
+          linkedin: "",
+          instagram: "",
+          pinterest: "",
+        });
+        setProfileImgFile(null);
+        setBgImgFile(null);
+        setBackgroundImg(null);
+        setProfileImg(null);
+        document
+          .querySelectorAll('input[type="file"]')
+          .forEach((input) => (input.value = ""));
+        document
+          .querySelectorAll('input[type="text"]')
+          .forEach((input) => (input.value = ""));
+      })
+      .catch((err) => {
+        console.error(err);
+        alert("something went wrong...");
       });
-      setProfileImgFile(null);
-      setBgImgFile(null);
-      setBackgroundImg(null);
-      setProfileImg(null);
-      document.querySelectorAll('input[type="file"]').forEach(input => input.value = "");
-      document.querySelectorAll('input[type="text"]').forEach(input => input.value = "");
-    }).catch((err) => {
-      console.error(err);
-      alert("something went wrong...")
-    });
-  }
+  };
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
       {/* FORM SECTION */}
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white p-6 rounded-xl shadow-lg"
-      >
+      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl ">
         <h2 className="text-2xl font-bold mb-6 text-center text-[#2c3e50]">
           Create Your Artist Banner
         </h2>
@@ -103,7 +172,9 @@ const ArtistBanner = () => {
               <input
                 type="file"
                 accept="image/*"
-                onChange={(e) => handleImageUpload(e, setBackgroundImg , setBgImgFile)}
+                onChange={(e) =>
+                  handleImageUpload(e, setBackgroundImg, setBgImgFile)
+                }
                 className="border border-gray-300 rounded w-full p-2"
               />
             </div>
@@ -114,7 +185,9 @@ const ArtistBanner = () => {
               <input
                 type="file"
                 accept="image/*"
-                onChange={(e) => handleImageUpload(e, setProfileImg, setProfileImgFile)}
+                onChange={(e) =>
+                  handleImageUpload(e, setProfileImg, setProfileImgFile)
+                }
                 className="border border-gray-300 rounded w-full p-2"
               />
             </div>
@@ -125,6 +198,7 @@ const ArtistBanner = () => {
               <input
                 type="text"
                 name="instagram"
+                value={formData?.instagram}
                 onChange={handleChange}
                 className="border border-gray-300 rounded w-full p-2"
               />
@@ -140,11 +214,12 @@ const ArtistBanner = () => {
               <input
                 type="text"
                 name="phone"
+                value={formData?.phone}
                 onChange={handleChange}
                 className="border border-gray-300 rounded w-full p-2"
               />
             </div>
-            
+
             <div>
               <label className="block mb-1 font-medium text-gray-700">
                 LinkedIn
@@ -152,11 +227,12 @@ const ArtistBanner = () => {
               <input
                 type="text"
                 name="linkedin"
+                value={formData?.linkedin}
                 onChange={handleChange}
                 className="border border-gray-300 rounded w-full p-2"
               />
             </div>
-           
+
             <div>
               <label className="block mb-1 font-medium text-gray-700">
                 Pinterest
@@ -164,33 +240,45 @@ const ArtistBanner = () => {
               <input
                 type="text"
                 name="pinterest"
+                value={formData?.pinterest}
                 onChange={handleChange}
                 className="border border-gray-300 rounded w-full p-2"
               />
             </div>
           </div>
         </div>
-    <div className="flex justify-between mt-6">
-      <button
-        type="submit"
-        className="w-1/2 bg-[#e3c27e] hover:bg-[#c8a954] text-white font-bold py-2 px-4 rounded mr-4"
-      >
-        Preview Banner
-      </button>
-      <button
-      onClick={updateProfileSubmit}        
-        className="w-1/2 bg-[#4CAF79] hover:bg-[#45A049] text-white font-bold py-2 px-4 rounded"
-        >
-       Update Profile
-      </button>
-    </div>
-        
+        <div>
+          <label className="block my-1 font-medium text-gray-700">
+            Artist info
+          </label>
+          <textarea
+            type="text"
+            name="artistInfo"
+            value={formData?.artistInfo}
+            onChange={handleChange}
+            className="border border-gray-300 rounded w-full p-2"
+          />
+        </div>
+        <div className="flex justify-between mt-6">
+          <button
+            type="submit"
+            className="w-1/2 bg-[#e3c27e] hover:bg-[#c8a954] text-white font-bold py-2 px-4 rounded mr-4"
+          >
+            Preview Banner
+          </button>
+          <button
+            onClick={updateProfileSubmit}
+            className="w-1/2 bg-black hover:bg-gray-800 text-white font-bold py-2 px-4 rounded"
+          >
+            Update Profile
+          </button>
+        </div>
       </form>
 
       {/* MODAL PREVIEW */}
       <Dialog open={showBanner} onClose={handleEdit} as={Fragment}>
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <Dialog.Panel className="w-full max-w-5xl rounded-xl overflow-hidden shadow-2xl relative">
+          <Dialog.Panel className="w-full max-w-5xl rounded-xl overflow-hidden relative">
             <div className="relative h-60 w-full">
               {/* Background Image */}
               {backgroundImg && (
@@ -214,7 +302,9 @@ const ArtistBanner = () => {
 
                 {/* Info */}
                 <div className="ml-6 space-y-1">
-                  <h2 className="text-2xl font-bold font-[Cinzel]">{formData.name}</h2>
+                  <h2 className="text-2xl font-bold font-[Cinzel]">
+                    {formData.name}
+                  </h2>
                   <div className="flex items-center gap-2 text-sm">
                     <FaMapMarkerAlt /> {formData.location}
                   </div>

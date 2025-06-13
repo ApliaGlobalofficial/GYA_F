@@ -25,6 +25,7 @@ import { createPayloadSchema } from "../utilities/Utility"; // Import the utilit
 import ReviewModal from "../Dashboard Components/ReviewModal";
 import { showNotification } from "../utilities/Utility"; // for success toast
 import { X } from "lucide-react";
+import ArtistBanner from "./ArtistBanner";
 
 export default function ArtistProfiles() {
   const navigate = useNavigate();
@@ -244,7 +245,7 @@ export default function ArtistProfiles() {
               {/* Tabs */}
               <Tab.Group>
                 <Tab.List className="flex justify-center gap-8 border-b py-3 bg-white text-md font-semibold">
-                  {["Products", "Reviews", "Vendor Biography"].map((tab, i) => (
+                  {["Products", "Reviews", "Vendor Biography","Profile"].map((tab, i) => (
                     <Tab
                       key={i}
                       className={({ selected }) =>
@@ -485,6 +486,10 @@ export default function ArtistProfiles() {
                         </div>
                       </div>
                     </div>
+                  </Tab.Panel>
+                  {/* Profile panel*/}
+                  <Tab.Panel>
+                  <ArtistBanner/>
                   </Tab.Panel>
                 </Tab.Panels>
               </Tab.Group>
