@@ -23,6 +23,7 @@ import { FaStar, FaUserAlt, FaHeart, FaRegHeart } from "react-icons/fa";
 //import QRCode from "react-qr-code";
 
 import CheckoutButton from "../components/CheckoutButton";
+
 const BuyArtwork = () => {
   const location = useLocation();
   const artId = location.pathname.split("/").pop(); // Extract artId from URL path
@@ -38,11 +39,19 @@ const BuyArtwork = () => {
   const [artCurrency, setArtCurrency] = useState(null);
   const [showImageModal, setShowImageModal] = useState(false);
   const [artCurrencySymbol, setArtCurrencySymbol] = useState(null);
+  const [dateRange, setDateRange] = useState(() => {
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + 1); // Set end date to one month after start date
+    return [startDate, endDate];
+  });
 
   const [wishlist, setWishlist] = useState(() => {
     const stored = JSON.parse(localStorage.getItem("wishlist")) || [];
     return stored;
   });
+  const navigate = useNavigate();
+
 
   const isWishlisted = wishlist.some((item) => item.id === artwork.id);
 
@@ -57,9 +66,20 @@ const BuyArtwork = () => {
     localStorage.setItem("wishlist", JSON.stringify(updatedWishlist));
   };
 
+  // Placeholder for showNotification if it's not passed as a prop or from context
+  const showNotification = ({ title, message, type }) => {
+    console.log(`Notification - ${type}: ${title} - ${message}`);
+    // In a real app, this would trigger a visible notification (e.g., toast, modal)
+    // For demonstration, you might display a simple div or use a library like react-toastify
+  };
+
   useEffect(() => {
     if (!artId) {
-      alert("No artwork found with this ID");
+      showNotification({
+        title: "Artwork Not Found",
+        message: "No artwork found with this ID.",
+        type: "error",
+      });
       navigate(-1);
       return;
     }
@@ -83,6 +103,11 @@ const BuyArtwork = () => {
         setReviewList(listOfReviews?.reviews);
       } catch (error) {
         console.error("Error fetching review data:", error);
+        showNotification({
+          title: "Error",
+          message: "Failed to fetch reviews.",
+          type: "error",
+        });
       }
     };
 
@@ -120,20 +145,16 @@ const BuyArtwork = () => {
         else setArtCurrency(currenc.currencyKey);
       })
       .catch((err) => {
-        alert("Error fetching data: ", err);
+        console.error("Error fetching art data: ", err);
+        showNotification({
+          title: "Error",
+          message: "Error fetching artwork data.",
+          type: "error",
+        });
       });
-  }, [artId]);
-  const navigate = useNavigate();
-  const todayStr = new Date().toDateString();
-  const [date, setDate] = useState(null);
+  }, [artId, navigate]); // Added navigate to dependency array
 
-  // const artwork = {
-  //   title: "Croatia Summer",
-  //   price: "£562.50",
-  //   description: "A warm holiday scene in Croatia with a 3D effect.",
-  //   category: "Art",
-  //   file: profileImage, // Use your image path here
-  // };
+  const todayStr = new Date().toDateString();
 
   const handleConfirmClick = () => {
     setShowModal(true); // open modal
@@ -288,13 +309,19 @@ const BuyArtwork = () => {
             <div style={containerStyle}>
               <style>{customStyles}</style>
               <Calendar
-                onChange={setDate}
-                value={date}
-                minDate={new Date()}
-                tileClassName={({ date }) =>
-                  date.toDateString() === todayStr ? "today" : ""
-                }
+                onChange={setDateRange} // This now receives an array [startDate, endDate]
+                value={dateRange} // The value is also an array [startDate, endDate]
+                selectRange={true} // Enable range selection
+                minDate={new Date()} // Still prevents selection of past dates
+                tileClassName={({ date, view }) => {
+                  // Apply 'today' class only to the current day in the month view
+                  if (view === "month" && date.toDateString() === todayStr) {
+                    return "today";
+                  }
+                  return null; // No custom class if not today
+                }}
               />
+              {console.log("Selected Date Range:", dateRange)}
             </div>
           </>
         ) : (
@@ -429,7 +456,7 @@ const BuyArtwork = () => {
                 if (reviewByUser.id == artwork.artist_details.artist_id) {
                   showNotification({
                     title: "Unauthorized Review",
-                    message: "You can not write a review to your arts",
+                    message: "You cannot write a review for your own art.",
                     type: "error",
                   });
                   return;
@@ -454,7 +481,7 @@ const BuyArtwork = () => {
                   type: "success",
                 });
 
-                setReviewModalOpen(false); // Close modal
+                setShowReviewModal(false); // Corrected this line
               } catch (error) {
                 console.error(error);
                 showNotification({
@@ -472,7 +499,10 @@ const BuyArtwork = () => {
         <BookingModal
           isOpen={showModal}
           onClose={handleCloseModal}
-          selectedDate={date}
+          // Ensures selectedDate is always an array [startDate, endDate] for BookingModal
+          selectedDate={
+            Array.isArray(dateRange) ? dateRange : [dateRange, dateRange]
+          }
           routedPayload={routedPayload}
           loggedInUser={loggedInUser}
         />

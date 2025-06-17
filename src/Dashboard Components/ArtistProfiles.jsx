@@ -78,6 +78,9 @@ export default function ArtistProfiles() {
 
     const loggedUser = localStorage.getItem("user");
 
+    console.log('logged user', loggedUser);
+    
+
     const fetchReviewsHelper = async (artistId) => {
       try {
         console.log("review data", artistId);

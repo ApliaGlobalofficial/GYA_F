@@ -25,6 +25,8 @@ const ArtsRequestForAdmin = () => {
         }
       );
       const json = await res.json();
+      console.log("Pending arts fetched:", json);
+      
       if (res.ok) {
         setPendingArts(json.data || []);
       } else {
@@ -155,7 +157,7 @@ const ArtsRequestForAdmin = () => {
                     ₹ {item.price}
                   </td>
                   <td className="px-4 py-3 border border-[#e3c27e]">
-                    ₹ {item.discountedPrice}
+                    ₹ {item.discounted_price}
                   </td>
                   <td className="px-4 py-3 border border-[#e3c27e]">
                     {item.status === 0
